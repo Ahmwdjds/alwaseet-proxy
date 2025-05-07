@@ -14,6 +14,7 @@ const tokenCache = {};
 // ✅ دالة تسجيل الدخول باستخدام multipart/form-data
 async function loginAndGetToken(username, password) {
   if (tokenCache[username]) {
+    console.log(`[Cache] Using cached token for user: ${username}`);
     return tokenCache[username];
   }
 
@@ -22,25 +23,28 @@ async function loginAndGetToken(username, password) {
     form.append('username', username);
     form.append('password', password);
 
+    console.log(`[Login] Sending login request for user: ${username}`);
+
     const response = await axios.post(`${BASE_API}/login`, form, {
       headers: form.getHeaders(),
     });
 
-    console.log('[Login Response]', response.data);
+    console.log('[Login Response from الوسيط]', response.data);
 
-    if (response.data.status && response.data.data?.token) {
-      tokenCache[username] = response.data.data.token;
-      return response.data.data.token;
-    } else {
-      throw new Error(response.data.msg || 'فشل تسجيل الدخول');
+    if (response.data.status === true && response.data.data && response.data.data.token) {
+      const token = response.data.data.token;
+      tokenCache[username] = token;
+      return token;
     }
+
+    throw new Error(response.data.msg || 'فشل تسجيل الدخول');
   } catch (err) {
     console.error('[Login Error]', err.response?.data || err.message);
-    throw new Error(err.response?.data?.msg || 'فشل تسجيل الدخول');
+    throw new Error(err.response?.data?.msg || err.message || 'فشل تسجيل الدخول');
   }
 }
 
-// ✅ endpoint لتسجيل الدخول
+// ✅ مسار تسجيل الدخول
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
 
@@ -52,9 +56,4 @@ app.post('/api/login', async (req, res) => {
     const token = await loginAndGetToken(username, password);
     return res.json({ success: true, token });
   } catch (err) {
-    return res.status(401).json({ success: false, error: err.message });
-  }
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Proxy server running on port ${PORT}`));
+    return res.status(401).json({ success
