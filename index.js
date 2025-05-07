@@ -9,13 +9,12 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
 const BASE_API = 'https://api.alwaseet-iq.net/v1/merchant';
-
-// ✅ كاش لحفظ التوكنات
 const tokenCache = {};
 
-// ✅ دالة تسجيل الدخول وجلب التوكن
+// ✅ دالة تسجيل الدخول مع طباعة كاملة للرد
 async function loginAndGetToken(username, password) {
   if (tokenCache[username]) {
+    console.log(`[Cache] Using cached token for user: ${username}`);
     return tokenCache[username];
   }
 
@@ -24,11 +23,15 @@ async function loginAndGetToken(username, password) {
     loginData.append('username', username);
     loginData.append('password', password);
 
+    console.log(`[Login] Sending login request for user: ${username}`);
+
     const response = await axios.post(`${BASE_API}/login`, loginData, {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
     });
+
+    console.log(`[Login] Response from الوسيط:`, response.data);
 
     if (response.data.status && response.data.token) {
       tokenCache[username] = response.data.token;
@@ -37,11 +40,12 @@ async function loginAndGetToken(username, password) {
       throw new Error('فشل تسجيل الدخول، تحقق من البيانات');
     }
   } catch (err) {
-    throw new Error('فشل تسجيل الدخول: ' + err.message);
+    console.error(`[Login Error]`, err.response?.data || err.message);
+    throw new Error(err.response?.data?.message || 'فشل تسجيل الدخول');
   }
 }
 
-// ✅ مسار login للربط من الواجهة
+// ✅ تسجيل الدخول من الواجهة
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
 
@@ -57,7 +61,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// ✅ مسار إرسال الطلب
+// ✅ إرسال الطلب من الواجهة
 app.post('/api/submit-order', async (req, res) => {
   try {
     const {
@@ -81,12 +85,16 @@ app.post('/api/submit-order', async (req, res) => {
     orderData.append('price', price.toString());
     orderData.append('quantity', quantity.toString());
 
+    console.log(`[Order] Sending order for user: ${username}`, orderData.toString());
+
     const orderResponse = await axios.post(`${BASE_API}/create-order`, orderData, {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         Authorization: `Bearer ${token}`,
       },
     });
+
+    console.log(`[Order] Response from الوسيط:`, orderResponse.data);
 
     const externalOrderNumber = orderResponse.data?.data?.order_number || null;
 
@@ -105,12 +113,11 @@ app.post('/api/submit-order', async (req, res) => {
 
     res.json({ success: true, order: savedOrder });
   } catch (error) {
-    console.error('فشل إرسال الطلب:', error.response?.data || error.message);
-    res.status(500).json({ success: false, error: 'فشل إرسال الطلب' });
+    console.error('[Order Error]', error.response?.data || error.message);
+    res.status(500).json({ success: false, error: 'فشل إرسال الطلب', details: error.response?.data || error.message });
   }
 });
 
-// ✅ تشغيل السيرفر
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Proxy server running on port ${PORT}`);
