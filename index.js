@@ -11,6 +11,7 @@ app.use(bodyParser.json());
 const BASE_API = 'https://api.alwaseet-iq.net/v1/merchant';
 const tokenCache = {};
 
+// ✅ دالة تسجيل الدخول باستخدام multipart/form-data
 async function loginAndGetToken(username, password) {
   if (tokenCache[username]) {
     return tokenCache[username];
@@ -21,7 +22,7 @@ async function loginAndGetToken(username, password) {
     form.append('username', username);
     form.append('password', password);
 
-    const response = await axios.post(\`\${BASE_API}/login\`, form, {
+    const response = await axios.post(`${BASE_API}/login`, form, {
       headers: form.getHeaders(),
     });
 
@@ -39,6 +40,7 @@ async function loginAndGetToken(username, password) {
   }
 }
 
+// ✅ endpoint لتسجيل الدخول
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
 
@@ -55,4 +57,4 @@ app.post('/api/login', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(\`Proxy server running on port \${PORT}\`));
+app.listen(PORT, () => console.log(`Proxy server running on port ${PORT}`));
