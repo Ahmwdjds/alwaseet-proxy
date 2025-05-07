@@ -1,4 +1,3 @@
-
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
@@ -11,11 +10,11 @@ app.use(bodyParser.json());
 
 const BASE_API = 'https://api.alwaseet-iq.net/v1/merchant';
 
-// تخزين التوكنات لكل عميل داخل الذاكرة
-const tokenCache = {}; // { "username": "token" }
+// ✅ كاش لحفظ التوكنات
+const tokenCache = {};
 
+// ✅ دالة تسجيل الدخول وجلب التوكن
 async function loginAndGetToken(username, password) {
-  // إذا كان التوكن محفوظ مسبقًا، نعيده
   if (tokenCache[username]) {
     return tokenCache[username];
   }
@@ -32,7 +31,7 @@ async function loginAndGetToken(username, password) {
     });
 
     if (response.data.status && response.data.token) {
-      tokenCache[username] = response.data.token; // حفظ التوكن للعميل
+      tokenCache[username] = response.data.token;
       return response.data.token;
     } else {
       throw new Error('فشل تسجيل الدخول، تحقق من البيانات');
@@ -42,6 +41,23 @@ async function loginAndGetToken(username, password) {
   }
 }
 
+// ✅ مسار login للربط من الواجهة
+app.post('/api/login', async (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ success: false, error: 'مطلوب اسم المستخدم وكلمة المرور' });
+  }
+
+  try {
+    const token = await loginAndGetToken(username, password);
+    return res.json({ success: true, token });
+  } catch (err) {
+    return res.status(401).json({ success: false, error: err.message });
+  }
+});
+
+// ✅ مسار إرسال الطلب
 app.post('/api/submit-order', async (req, res) => {
   try {
     const {
@@ -94,6 +110,7 @@ app.post('/api/submit-order', async (req, res) => {
   }
 });
 
+// ✅ تشغيل السيرفر
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Proxy server running on port ${PORT}`);
