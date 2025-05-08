@@ -67,7 +67,7 @@ app.get('/api/cities', async (req, res) => {
   const token = authHeader.split(' ')[1];
 
   try {
-    const response = await axios.get(`${BASE_API}/cities`, {
+    const response = await axios.get(`${BASE_API}/citys`, {
       headers: { Authorization: `Bearer ${token}` }
     });
 
