@@ -11,7 +11,7 @@ app.use(bodyParser.json());
 const BASE_API = 'https://api.alwaseet-iq.net/v1/merchant';
 const tokenCache = {};
 
-// ✅ تسجيل الدخول
+// ✅ دالة تسجيل الدخول
 async function loginAndGetToken(username, password) {
   if (tokenCache[username]) {
     console.log(`[Cache] Using cached token for user: ${username}`);
@@ -23,15 +23,13 @@ async function loginAndGetToken(username, password) {
     form.append('username', username);
     form.append('password', password);
 
-    console.log(`[Login] Sending login request for user: ${username}`);
-
     const response = await axios.post(`${BASE_API}/login`, form, {
       headers: form.getHeaders(),
     });
 
-    console.log('[Login Response from الوسيط]', response.data);
+    console.log('[Login Response]', response.data);
 
-    if (response.data.status === true && response.data.data && response.data.data.token) {
+    if (response.data.status && response.data.data?.token) {
       const token = response.data.data.token;
       tokenCache[username] = token;
       return token;
@@ -40,14 +38,13 @@ async function loginAndGetToken(username, password) {
     throw new Error(response.data.msg || 'فشل تسجيل الدخول');
   } catch (err) {
     console.error('[Login Error]', err.response?.data || err.message);
-    throw new Error(err.response?.data?.msg || err.message || 'فشل تسجيل الدخول');
+    throw new Error(err.response?.data?.msg || 'فشل تسجيل الدخول');
   }
 }
 
 // ✅ POST /api/login
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
-
   if (!username || !password) {
     return res.status(400).json({ success: false, error: 'مطلوب اسم المستخدم وكلمة المرور' });
   }
@@ -63,8 +60,7 @@ app.post('/api/login', async (req, res) => {
 // ✅ GET /api/cities
 app.get('/api/cities', async (req, res) => {
   const authHeader = req.headers.authorization;
-
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!authHeader?.startsWith('Bearer ')) {
     return res.status(401).json({ success: false, error: 'مطلوب توكن صالح' });
   }
 
@@ -72,9 +68,7 @@ app.get('/api/cities', async (req, res) => {
 
   try {
     const response = await axios.get(`${BASE_API}/cities`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
+      headers: { Authorization: `Bearer ${token}` }
     });
 
     return res.json({ success: true, cities: response.data.data });
@@ -84,6 +78,47 @@ app.get('/api/cities', async (req, res) => {
   }
 });
 
-// ✅ تشغيل السيرفر
+// ✅ POST /api/submit-order
+app.post('/api/submit-order', async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, error: 'مطلوب توكن صالح' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  const {
+    customer_name, city, area, phone,
+    product_type, price, quantity
+  } = req.body;
+
+  if (!customer_name || !city || !area || !phone || !product_type || !price || !quantity) {
+    return res.status(400).json({ success: false, error: 'جميع الحقول مطلوبة' });
+  }
+
+  try {
+    const form = new FormData();
+    form.append('customer_name', customer_name);
+    form.append('city', city);
+    form.append('area', area);
+    form.append('phone', phone);
+    form.append('product_type', product_type);
+    form.append('price', price.toString());
+    form.append('quantity', quantity.toString());
+
+    const response = await axios.post(`${BASE_API}/create-order`, form, {
+      headers: {
+        ...form.getHeaders(),
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    return res.json({ success: true, order_number: response.data?.data?.order_number || null });
+  } catch (err) {
+    console.error('[Order Error]', err.response?.data || err.message);
+    return res.status(500).json({ success: false, error: 'فشل إرسال الطلب' });
+  }
+});
+
+// ✅ تشغيل الخادم
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Proxy server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`✅ Proxy server running on port ${PORT}`));
