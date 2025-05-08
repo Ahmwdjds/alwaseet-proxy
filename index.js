@@ -78,6 +78,35 @@ app.get('/api/cities', async (req, res) => {
   }
 });
 
+// ✅ GET /api/regions?city_id=ID
+app.get('/api/regions', async (req, res) => {
+  const authHeader = req.headers.authorization;
+  const cityId = req.query.city_id;
+
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, error: 'مطلوب توكن صالح' });
+  }
+
+  if (!cityId) {
+    return res.status(400).json({ success: false, error: 'يجب إرسال city_id في الرابط' });
+  }
+
+  const token = authHeader.split(' ')[1];
+
+  try {
+    const response = await axios.get(`${BASE_API}/regions?city_id=${cityId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    return res.json({ success: true, regions: response.data.data });
+  } catch (err) {
+    console.error('[Regions Error]', err.response?.data || err.message);
+    return res.status(500).json({ success: false, error: 'فشل في جلب المناطق' });
+  }
+});
+
 // ✅ POST /api/submit-order
 app.post('/api/submit-order', async (req, res) => {
   const authHeader = req.headers.authorization;
