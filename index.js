@@ -78,7 +78,7 @@ app.get('/api/cities', async (req, res) => {
   }
 });
 
-// ✅ جلب المناطق بناءً على city_id
+// ✅ جلب المناطق
 app.get('/api/regions', async (req, res) => {
   const authHeader = req.headers.authorization;
   const cityId = req.query.city_id;
@@ -95,9 +95,7 @@ app.get('/api/regions', async (req, res) => {
 
   try {
     const response = await axios.get(`${BASE_API}/regions?city_id=${cityId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
+      headers: { Authorization: `Bearer ${token}` }
     });
 
     return res.json({ success: true, regions: response.data.data });
@@ -107,7 +105,7 @@ app.get('/api/regions', async (req, res) => {
   }
 });
 
-// ✅ إرسال الطلب
+// ✅ إرسال الطلب (المسار الرسمي)
 app.post('/api/submit-order', async (req, res) => {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
@@ -150,6 +148,12 @@ app.post('/api/submit-order', async (req, res) => {
     console.error('[Order Error]', err.response?.data || err.message);
     return res.status(500).json({ success: false, error: 'فشل إرسال الطلب' });
   }
+});
+
+// ✅ دعم المسار القديم
+app.post('/v1/merchant/create-order', (req, res) => {
+  req.url = '/api/submit-order';
+  app._router.handle(req, res);
 });
 
 // ✅ تشغيل الخادم
