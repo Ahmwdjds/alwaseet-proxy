@@ -11,7 +11,7 @@ app.use(bodyParser.json());
 const BASE_API = 'https://api.alwaseet-iq.net/v1/merchant';
 const tokenCache = {};
 
-// ✅ دالة تسجيل الدخول
+// ✅ تسجيل الدخول وجلب التوكن
 async function loginAndGetToken(username, password) {
   if (tokenCache[username]) {
     console.log(`[Cache] Using cached token for user: ${username}`);
@@ -42,7 +42,7 @@ async function loginAndGetToken(username, password) {
   }
 }
 
-// ✅ POST /api/login
+// ✅ تسجيل الدخول
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
@@ -57,7 +57,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// ✅ GET /api/cities
+// ✅ جلب المدن
 app.get('/api/cities', async (req, res) => {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
@@ -78,7 +78,7 @@ app.get('/api/cities', async (req, res) => {
   }
 });
 
-// ✅ GET /api/regions?city_id=ID
+// ✅ جلب المناطق بناءً على city_id
 app.get('/api/regions', async (req, res) => {
   const authHeader = req.headers.authorization;
   const cityId = req.query.city_id;
@@ -107,7 +107,7 @@ app.get('/api/regions', async (req, res) => {
   }
 });
 
-// ✅ POST /api/submit-order
+// ✅ إرسال الطلب
 app.post('/api/submit-order', async (req, res) => {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
@@ -141,7 +141,11 @@ app.post('/api/submit-order', async (req, res) => {
       }
     });
 
-    return res.json({ success: true, order_number: response.data?.data?.order_number || null });
+    return res.json({
+      success: true,
+      order_number: response.data?.data?.order_number || null,
+      message: response.data?.msg || 'تم إنشاء الطلب بنجاح'
+    });
   } catch (err) {
     console.error('[Order Error]', err.response?.data || err.message);
     return res.status(500).json({ success: false, error: 'فشل إرسال الطلب' });
