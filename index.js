@@ -60,6 +60,30 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
+// ✅ GET /api/cities
+app.get('/api/cities', async (req, res) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, error: 'مطلوب توكن صالح' });
+  }
+
+  const token = authHeader.split(' ')[1];
+
+  try {
+    const response = await axios.get(`${BASE_API}/cities`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    return res.json({ success: true, cities: response.data.data });
+  } catch (err) {
+    console.error('[Cities Error]', err.response?.data || err.message);
+    return res.status(500).json({ success: false, error: 'فشل في جلب المدن' });
+  }
+});
+
 // ✅ تشغيل السيرفر
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Proxy server running on port ${PORT}`));
