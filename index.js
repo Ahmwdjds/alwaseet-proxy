@@ -54,74 +54,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// ✅ جلب المدن
-app.get('/api/cities', async (req, res) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({ success: false, error: 'مطلوب توكن صالح' });
-  }
-
-  const token = authHeader.split(' ')[1];
-
-  try {
-    const response = await axios.get(`${BASE_API}/citys`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-
-    return res.json({ success: true, cities: response.data.data });
-  } catch (err) {
-    return res.status(500).json({ success: false, error: 'فشل في جلب المدن' });
-  }
-});
-
-// ✅ جلب المناطق
-app.get('/api/regions', async (req, res) => {
-  const authHeader = req.headers.authorization;
-  const cityId = req.query.city_id;
-
-  if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({ success: false, error: 'مطلوب توكن صالح' });
-  }
-
-  if (!cityId) {
-    return res.status(400).json({ success: false, error: 'يجب إرسال city_id في الرابط' });
-  }
-
-  const token = authHeader.split(' ')[1];
-
-  try {
-    const response = await axios.get(`${BASE_API}/regions?city_id=${cityId}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-
-    return res.json({ success: true, regions: response.data.data });
-  } catch (err) {
-    return res.status(500).json({ success: false, error: 'فشل في جلب المناطق' });
-  }
-});
-
-// ✅ جلب أحجام الطرود
-app.get('/api/package-sizes', async (req, res) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({ success: false, error: 'مطلوب توكن صالح' });
-  }
-
-  const token = authHeader.split(' ')[1];
-
-  try {
-    const response = await axios.get(`${BASE_API}/package-sizes`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-
-    return res.json({ success: true, sizes: response.data.data });
-  } catch (err) {
-    console.error('[Sizes Error]', err.response?.data || err.message);
-    return res.status(500).json({ success: false, error: 'فشل في جلب أحجام الطرود' });
-  }
-});
-
-// ✅ إرسال الطلب الرسمي + ربطه بالفاتورة
+// ✅ إرسال الطلب الرسمي
 app.post('/api/submit-order', async (req, res) => {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
@@ -167,9 +100,7 @@ app.post('/api/submit-order', async (req, res) => {
       headers: form.getHeaders()
     });
 
-    const createdOrder = response.data.data?.[0];
-    const createdOrderId = createdOrder?.order_id;
-
+    const createdOrderId = response.data.data?.[0]?.order_id;
     if (!createdOrderId) {
       return res.json({
         success: true,
@@ -192,7 +123,7 @@ app.post('/api/submit-order', async (req, res) => {
         if (foundOrder) {
           return res.json({
             success: true,
-            order: createdOrder,
+            order: response.data.data?.[0],
             invoice: {
               id: invoice.id,
               merchant_price: invoice.merchant_price,
@@ -204,16 +135,17 @@ app.post('/api/submit-order', async (req, res) => {
         }
       }
 
+      // إذا لم يتم العثور عليه
       return res.json({
         success: true,
-        order: createdOrder,
+        order: response.data.data?.[0],
         message: 'تم إنشاء الطلب، لكن لم يتم العثور على الفاتورة الخاصة به حتى الآن'
       });
 
     } catch (err) {
       return res.json({
         success: true,
-        order: createdOrder,
+        order: response.data.data?.[0],
         message: 'تم إنشاء الطلب، لكن حدث خطأ أثناء محاولة جلب الفاتورة',
         invoice_error: err.response?.data || err.message
       });
@@ -225,52 +157,6 @@ app.post('/api/submit-order', async (req, res) => {
       error: 'فشل إرسال الطلب',
       details: err.response?.data || err.message
     });
-  }
-});
-
-// ✅ دعم المسار القديم
-app.post('/v1/merchant/create-order', (req, res) => {
-  req.url = '/api/submit-order';
-  app._router.handle(req, res);
-});
-
-// ✅ جلب الفواتير
-app.get('/api/invoices', async (req, res) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({ success: false, error: 'مطلوب توكن صالح' });
-  }
-
-  const token = authHeader.split(' ')[1];
-
-  try {
-    const response = await axios.get(`${BASE_API}/get_merchant_invoices?token=${token}`);
-    return res.json({ success: true, invoices: response.data.data });
-  } catch (err) {
-    return res.status(500).json({ success: false, error: 'فشل في جلب الفواتير' });
-  }
-});
-
-// ✅ جلب الطلبات المرتبطة بفاتورة
-app.get('/api/invoice-orders', async (req, res) => {
-  const authHeader = req.headers.authorization;
-  const invoiceId = req.query.invoice_id;
-
-  if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({ success: false, error: 'مطلوب توكن صالح' });
-  }
-
-  if (!invoiceId) {
-    return res.status(400).json({ success: false, error: 'يجب إرسال invoice_id في الرابط' });
-  }
-
-  const token = authHeader.split(' ')[1];
-
-  try {
-    const response = await axios.get(`${BASE_API}/get_merchant_invoice_orders?token=${token}&invoice_id=${invoiceId}`);
-    return res.json({ success: true, data: response.data.data });
-  } catch (err) {
-    return res.status(500).json({ success: false, error: 'فشل في جلب طلبات الفاتورة' });
   }
 });
 
