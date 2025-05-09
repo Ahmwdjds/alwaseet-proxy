@@ -100,7 +100,6 @@ app.get('/api/regions', async (req, res) => {
   }
 });
 
-
 // ✅ جلب أحجام الطرود
 app.get('/api/package-sizes', async (req, res) => {
   const authHeader = req.headers.authorization;
@@ -122,8 +121,7 @@ app.get('/api/package-sizes', async (req, res) => {
   }
 });
 
-
-// ✅ إرسال الطلب الرسمي
+// ✅ إرسال الطلب الرسمي + ربطه بالفاتورة
 app.post('/api/submit-order', async (req, res) => {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
@@ -169,11 +167,58 @@ app.post('/api/submit-order', async (req, res) => {
       headers: form.getHeaders()
     });
 
-    return res.json({
-      success: true,
-      order: response.data.data?.[0] || {},
-      message: response.data?.msg || 'تم إنشاء الطلب بنجاح'
-    });
+    const createdOrder = response.data.data?.[0];
+    const createdOrderId = createdOrder?.order_id;
+
+    if (!createdOrderId) {
+      return res.json({
+        success: true,
+        order: {},
+        message: response.data?.msg || 'تم إنشاء الطلب، لكن لم يتم العثور على رقم الطلب'
+      });
+    }
+
+    // ✅ نبحث داخل الفواتير عن الفاتورة التي تحتوي هذا الطلب
+    try {
+      const invoicesRes = await axios.get(`${BASE_API}/get_merchant_invoices?token=${token}`);
+      const invoices = invoicesRes.data.data || [];
+
+      for (const invoice of invoices) {
+        const invoiceId = invoice.id;
+        const ordersRes = await axios.get(`${BASE_API}/get_merchant_invoice_orders?token=${token}&invoice_id=${invoiceId}`);
+        const orders = ordersRes.data.data || [];
+
+        const foundOrder = orders.find(order => order.order_id === createdOrderId);
+        if (foundOrder) {
+          return res.json({
+            success: true,
+            order: createdOrder,
+            invoice: {
+              id: invoice.id,
+              merchant_price: invoice.merchant_price,
+              delivered_orders_count: invoice.delivered_orders_count,
+              status: invoice.status
+            },
+            message: 'تم إنشاء الطلب وتحديد الفاتورة بنجاح'
+          });
+        }
+      }
+
+      return res.json({
+        success: true,
+        order: createdOrder,
+        message: 'تم إنشاء الطلب، لكن لم يتم العثور على الفاتورة الخاصة به حتى الآن'
+      });
+
+    } catch (err) {
+      return res.json({
+        success: true,
+        order: createdOrder,
+        message: 'تم إنشاء الطلب، لكن حدث خطأ أثناء محاولة جلب الفاتورة',
+        invoice_error: err.response?.data || err.message
+      });
+    }
+
   } catch (err) {
     return res.status(500).json({
       success: false,
@@ -189,7 +234,7 @@ app.post('/v1/merchant/create-order', (req, res) => {
   app._router.handle(req, res);
 });
 
-//✅ جلب فواتير التاجر
+// ✅ جلب الفواتير
 app.get('/api/invoices', async (req, res) => {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
@@ -206,7 +251,7 @@ app.get('/api/invoices', async (req, res) => {
   }
 });
 
-//✅ جلب الطلبات المرتبطة بفاتورة
+// ✅ جلب الطلبات المرتبطة بفاتورة
 app.get('/api/invoice-orders', async (req, res) => {
   const authHeader = req.headers.authorization;
   const invoiceId = req.query.invoice_id;
@@ -228,7 +273,6 @@ app.get('/api/invoice-orders', async (req, res) => {
     return res.status(500).json({ success: false, error: 'فشل في جلب طلبات الفاتورة' });
   }
 });
-
 
 // ✅ تشغيل الخادم
 const PORT = process.env.PORT || 3000;
