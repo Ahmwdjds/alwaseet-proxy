@@ -189,6 +189,47 @@ app.post('/v1/merchant/create-order', (req, res) => {
   app._router.handle(req, res);
 });
 
+//✅ جلب فواتير التاجر
+app.get('/api/invoices', async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, error: 'مطلوب توكن صالح' });
+  }
+
+  const token = authHeader.split(' ')[1];
+
+  try {
+    const response = await axios.get(`${BASE_API}/get_merchant_invoices?token=${token}`);
+    return res.json({ success: true, invoices: response.data.data });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: 'فشل في جلب الفواتير' });
+  }
+});
+
+//✅ جلب الطلبات المرتبطة بفاتورة
+app.get('/api/invoice-orders', async (req, res) => {
+  const authHeader = req.headers.authorization;
+  const invoiceId = req.query.invoice_id;
+
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, error: 'مطلوب توكن صالح' });
+  }
+
+  if (!invoiceId) {
+    return res.status(400).json({ success: false, error: 'يجب إرسال invoice_id في الرابط' });
+  }
+
+  const token = authHeader.split(' ')[1];
+
+  try {
+    const response = await axios.get(`${BASE_API}/get_merchant_invoice_orders?token=${token}&invoice_id=${invoiceId}`);
+    return res.json({ success: true, data: response.data.data });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: 'فشل في جلب طلبات الفاتورة' });
+  }
+});
+
+
 // ✅ تشغيل الخادم
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`✅ Proxy server running on port ${PORT}`));
