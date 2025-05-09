@@ -183,6 +183,8 @@ app.post('/api/submit-order', async (req, res) => {
       const invoicesRes = await axios.get(`${BASE_API}/get_merchant_invoices?token=${token}`);
       const invoices = invoicesRes.data.data || [];
 
+      let foundInvoice = null;
+
       for (const invoice of invoices) {
         const invoiceId = invoice.id;
         const ordersRes = await axios.get(`${BASE_API}/get_merchant_invoice_orders?token=${token}&invoice_id=${invoiceId}`);
@@ -190,25 +192,30 @@ app.post('/api/submit-order', async (req, res) => {
 
         const foundOrder = orders.find(order => order.order_id === createdOrderId);
         if (foundOrder) {
-          return res.json({
-            success: true,
-            order: createdOrder,
-            invoice: {
-              id: invoice.id,
-              merchant_price: invoice.merchant_price,
-              delivered_orders_count: invoice.delivered_orders_count,
-              status: invoice.status
-            },
-            message: 'تم إنشاء الطلب وتحديد الفاتورة بنجاح'
-          });
+          foundInvoice = invoice;
+          break;
         }
       }
 
-      return res.json({
-        success: true,
-        order: createdOrder,
-        message: 'تم إنشاء الطلب، لكن لم يتم العثور على الفاتورة الخاصة به حتى الآن'
-      });
+      if (foundInvoice) {
+        return res.json({
+          success: true,
+          order: createdOrder,
+          invoice: {
+            id: foundInvoice.id,
+            merchant_price: foundInvoice.merchant_price,
+            delivered_orders_count: foundInvoice.delivered_orders_count,
+            status: foundInvoice.status
+          },
+          message: 'تم إنشاء الطلب وتحديد الفاتورة بنجاح'
+        });
+      } else {
+        return res.json({
+          success: true,
+          order: createdOrder,
+          message: 'تم إنشاء الطلب، لكن لم يتم العثور على الفاتورة الخاصة به حتى الآن'
+        });
+      }
 
     } catch (err) {
       return res.json({
