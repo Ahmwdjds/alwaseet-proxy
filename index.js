@@ -100,6 +100,29 @@ app.get('/api/regions', async (req, res) => {
   }
 });
 
+
+// ✅ جلب أحجام الطرود
+app.get('/api/package-sizes', async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, error: 'مطلوب توكن صالح' });
+  }
+
+  const token = authHeader.split(' ')[1];
+
+  try {
+    const response = await axios.get(`${BASE_API}/package-sizes`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    return res.json({ success: true, sizes: response.data.data });
+  } catch (err) {
+    console.error('[Sizes Error]', err.response?.data || err.message);
+    return res.status(500).json({ success: false, error: 'فشل في جلب أحجام الطرود' });
+  }
+});
+
+
 // ✅ إرسال الطلب الرسمي
 app.post('/api/submit-order', async (req, res) => {
   const authHeader = req.headers.authorization;
