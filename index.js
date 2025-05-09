@@ -27,8 +27,6 @@ async function loginAndGetToken(username, password) {
       headers: form.getHeaders(),
     });
 
-    console.log('[Login Response]', response.data);
-
     if (response.data.status && response.data.data?.token) {
       const token = response.data.data.token;
       tokenCache[username] = token;
@@ -37,7 +35,6 @@ async function loginAndGetToken(username, password) {
 
     throw new Error(response.data.msg || 'فشل تسجيل الدخول');
   } catch (err) {
-    console.error('[Login Error]', err.response?.data || err.message);
     throw new Error(err.response?.data?.msg || 'فشل تسجيل الدخول');
   }
 }
@@ -73,7 +70,6 @@ app.get('/api/cities', async (req, res) => {
 
     return res.json({ success: true, cities: response.data.data });
   } catch (err) {
-    console.error('[Cities Error]', err.response?.data || err.message);
     return res.status(500).json({ success: false, error: 'فشل في جلب المدن' });
   }
 });
@@ -100,12 +96,11 @@ app.get('/api/regions', async (req, res) => {
 
     return res.json({ success: true, regions: response.data.data });
   } catch (err) {
-    console.error('[Regions Error]', err.response?.data || err.message);
     return res.status(500).json({ success: false, error: 'فشل في جلب المناطق' });
   }
 });
 
-// ✅ إرسال الطلب (المسار الرسمي)
+// ✅ إرسال الطلب الرسمي
 app.post('/api/submit-order', async (req, res) => {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
@@ -114,39 +109,54 @@ app.post('/api/submit-order', async (req, res) => {
 
   const token = authHeader.split(' ')[1];
   const {
-    customer_name, city, area, phone,
-    product_type, price, quantity
+    client_name,
+    client_mobile,
+    client_mobile2,
+    city_id,
+    region_id,
+    location,
+    type_name,
+    items_number,
+    price,
+    package_size,
+    merchant_notes,
+    replacement
   } = req.body;
 
-  if (!customer_name || !city || !area || !phone || !product_type || !price || !quantity) {
-    return res.status(400).json({ success: false, error: 'جميع الحقول مطلوبة' });
+  if (!client_name || !client_mobile || !city_id || !region_id || !location || !type_name || !items_number || !price || !package_size || replacement === undefined) {
+    return res.status(400).json({ success: false, error: 'بعض الحقول المطلوبة مفقودة' });
   }
 
   try {
     const form = new FormData();
-    form.append('customer_name', customer_name);
-    form.append('city', city);
-    form.append('area', area);
-    form.append('phone', phone);
-    form.append('product_type', product_type);
+    form.append('client_name', client_name);
+    form.append('client_mobile', client_mobile);
+    if (client_mobile2) form.append('client_mobile2', client_mobile2);
+    form.append('city_id', city_id.toString());
+    form.append('region_id', region_id.toString());
+    form.append('location', location);
+    form.append('type_name', type_name);
+    form.append('items_number', items_number.toString());
     form.append('price', price.toString());
-    form.append('quantity', quantity.toString());
+    form.append('package_size', package_size.toString());
+    if (merchant_notes) form.append('merchant_notes', merchant_notes);
+    form.append('replacement', replacement.toString());
 
-    const response = await axios.post(`${BASE_API}/create-order`, form, {
-      headers: {
-        ...form.getHeaders(),
-        Authorization: `Bearer ${token}`
-      }
+    const response = await axios.post(`${BASE_API}/create-order?token=${token}`, form, {
+      headers: form.getHeaders()
     });
 
     return res.json({
       success: true,
-      order_number: response.data?.data?.order_number || null,
+      order: response.data.data?.[0] || {},
       message: response.data?.msg || 'تم إنشاء الطلب بنجاح'
     });
   } catch (err) {
-    console.error('[Order Error]', err.response?.data || err.message);
-    return res.status(500).json({ success: false, error: 'فشل إرسال الطلب' });
+    return res.status(500).json({
+      success: false,
+      error: 'فشل إرسال الطلب',
+      details: err.response?.data || err.message
+    });
   }
 });
 
