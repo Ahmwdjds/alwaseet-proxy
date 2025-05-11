@@ -178,6 +178,63 @@ app.post('/api/submit-order', async (req, res) => {
       });
     }
 
+    // استرجاع طلبات 
+    app.post('/get-orders', async (req, res) => {
+      const { token } = req.body;
+
+      try {
+        const response = await axios.post(
+          'https://alwaseet.store/api/orders',
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        res.json(response.data);
+      } catch (error) {
+        console.error('Error fetching orders:', error?.response?.data || error.message);
+        res.status(500).json({ error: 'Failed to fetch orders' });
+      }
+    });
+
+    // استرجاع الفاتورة
+    app.post('/get-invoice', async (req, res) => {
+      const { token, order_id } = req.body;
+
+      try {
+        const response = await axios.get(`https://alwaseet.store/api/invoice/${order_id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        res.json(response.data);
+      } catch (error) {
+        console.error('Error fetching invoice:', error?.response?.data || error.message);
+        res.status(500).json({ error: 'Failed to fetch invoice' });
+      }
+    });
+
+    // استرجاع تفاصيل الطلب 
+    app.post('/get-order-details', async (req, res) => {
+      const { token, order_id } = req.body;
+
+      try {
+        const response = await axios.get(`https://alwaseet.store/api/orders/${order_id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        res.json(response.data);
+      } catch (error) {
+        console.error('Error fetching order details:', error?.response?.data || error.message);
+        res.status(500).json({ error: 'Failed to fetch order details' });
+      }
+    });
+
     // ✅ نبحث داخل الفواتير عن الفاتورة التي تحتوي هذا الطلب
     try {
       const invoicesRes = await axios.get(`${BASE_API}/get_merchant_invoices?token=${token}`);
