@@ -339,6 +339,7 @@ app.post('/get-order-details', async (req, res) => {
 });
 
 
-// ✅ تشغيل الخادم
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`✅ Proxy server running on port ${PORT}`));
+const port = 3002; // تغيير المنفذ إلى 3002
+app.listen(port, () => {
+  console.log(`Server is running on http://localhost:${port}`);
+});
