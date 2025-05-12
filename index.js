@@ -278,13 +278,14 @@ app.get('/api/invoice-orders', async (req, res) => {
 app.get("/orders", async (req, res) => {
   const token = req.query.token; // الحصول على التوكن من الطلب
 
+  if (!token) {
+    return res.status(400).json({ error: true, message: "Token is required" });
+  }
+
   try {
     // إرسال طلب إلى API منصة الوسيط
     const response = await axios.get(
-      `https://api.alwaseet-iq.net/v1/merchant/merchant-orders?token=${token}`,
-      {
-        headers: { "Content-Type": "multipart/form-data" }
-      }
+      `https://api.alwaseet-iq.net/v1/merchant/merchant-orders?token=${token}`
     );
 
     // إرسال البيانات إلى الواجهة الأمامية
@@ -294,6 +295,8 @@ app.get("/orders", async (req, res) => {
     res.status(500).json({ error: true, message: error.message });
   }
 });
+
+const port = process.env.PORT || 3000; // تعيين المنفذ من متغير البيئة PORT أو 3000 كقيمة افتراضية
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
