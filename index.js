@@ -295,7 +295,6 @@ app.get("/orders", async (req, res) => {
     res.status(500).json({ error: true, message: error.message });
   }
 });
-let port = process.env.PORT || 3000; // تعيين المنفذ من متغير البيئة PORT أو 3000 كقيمة افتراضية
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
