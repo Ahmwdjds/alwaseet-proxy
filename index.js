@@ -275,20 +275,17 @@ app.get('/api/invoice-orders', async (req, res) => {
   }
 });
 // ✅ استرجاع الطلبات
-app.post('/get-orders', async (req, res) => {
-  const { token } = req.body;
+app.get('/get-orders', async (req, res) => {
+  const { token } = req.query; // استخدم query بدلاً من body لتمرير التوكن في الـ GET
 
   try {
-    const response = await axios.post(
-      'https://alwaseet.store/api/orders',
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    res.json(response.data);
+    const response = await axios.get('https://alwaseet.store/api/orders', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    res.json(response.data); // إرسال الاستجابة الصحيحة
   } catch (error) {
     console.error('Error fetching orders:', error?.response?.data || error.message);
     res.status(500).json({ error: 'Failed to fetch orders' });
