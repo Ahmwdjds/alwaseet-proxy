@@ -274,70 +274,33 @@ app.get('/api/invoice-orders', async (req, res) => {
     return res.status(500).json({ success: false, error: 'فشل في جلب طلبات الفاتورة' });
   }
 });
+
 // ✅ استرجاع الطلبات
 app.get("/orders", async (req, res) => {
   const token = req.query.token; // الحصول على التوكن من الطلب
 
   if (!token) {
-    return res.status(400).json({ error: true, message: "Token is required" });
-  }
-
-  try {
-    // إرسال طلب إلى API منصة الوسيط
-    const response = await axios.get(
-      `https://api.alwaseet-iq.net/v1/merchant/merchant-orders?token=${token}`
-    );
-
-    // إرسال البيانات إلى الواجهة الأمامية
-    res.json(response.data); // إرجاع البيانات كما هي
-
-  } catch (error) {
-    res.status(500).json({ error: true, message: error.message });
-  }
+    return res.status(400).json({ error: true, message: "Token is required"
+});
+}
+  
+try {
+const orders = await fetchOrders(token);
+res.json(orders);
+} catch (err) {
+console.log(err);
+res.status(500).json({ error: true, message: "Failed to retrieve orders" });
+}
 });
 
-app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
-});
+async function fetchOrders(token) {
+const url = ${BASE_API}/orders;
+const response = await axios.get(url, { headers: { Authorization: Bearer ${token} } });
+return response.data;
+}
 
-// ✅ استرجاع الفاتورة
-app.post('/get-invoice', async (req, res) => {
-  const { token, order_id } = req.body;
-
-  try {
-    const response = await axios.get(`https://alwaseet.store/api/invoice/${order_id}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    res.json(response.data);
-  } catch (error) {
-    console.error('Error fetching invoice:', error?.response?.data || error.message);
-    res.status(500).json({ error: 'Failed to fetch invoice' });
-  }
-});
-
-// ✅ استرجاع تفاصيل الطلب
-app.post('/get-order-details', async (req, res) => {
-  const { token, order_id } = req.body;
-
-  try {
-    const response = await axios.get(`https://alwaseet.store/api/orders/${order_id}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    res.json(response.data);
-  } catch (error) {
-    console.error('Error fetching order details:', error?.response?.data || error.message);
-    res.status(500).json({ error: 'Failed to fetch order details' });
-  }
-});
-
-
-const port = 3002; // تغيير المنفذ إلى 3002
-app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+// ✅ بدء الخادم
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => {
+console.log(Proxy server running at http://localhost:${PORT});
 });
