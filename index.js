@@ -121,7 +121,7 @@ app.get('/api/package-sizes', async (req, res) => {
   }
 });
 
-// ✅ إرسال الطلب الرسمي + ربطه بالفاتورة
+// ✅ إرسال الطلب الرسمي
 app.post('/api/submit-order', async (req, res) => {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
@@ -178,47 +178,11 @@ app.post('/api/submit-order', async (req, res) => {
       });
     }
 
-  
-    // ✅ نبحث داخل الفواتير عن الفاتورة التي تحتوي هذا الطلب
-    try {
-      const invoicesRes = await axios.get(`${BASE_API}/get_merchant_invoices?token=${token}`);
-      const invoices = invoicesRes.data.data || [];
-
-      for (const invoice of invoices) {
-        const invoiceId = invoice.id;
-        const ordersRes = await axios.get(`${BASE_API}/get_merchant_invoice_orders?token=${token}&invoice_id=${invoiceId}`);
-        const orders = ordersRes.data.data || [];
-
-        const foundOrder = orders.find(order => order.order_id === createdOrderId);
-        if (foundOrder) {
-          return res.json({
-            success: true,
-            order: createdOrder,
-            invoice: {
-              id: invoice.id,
-              merchant_price: invoice.merchant_price,
-              delivered_orders_count: invoice.delivered_orders_count,
-              status: invoice.status
-            },
-            message: 'تم إنشاء الطلب وتحديد الفاتورة بنجاح'
-          });
-        }
-      }
-
-      return res.json({
-        success: true,
-        order: createdOrder,
-        message: 'تم إنشاء الطلب، لكن لم يتم العثور على الفاتورة الخاصة به حتى الآن'
-      });
-
-    } catch (err) {
-      return res.json({
-        success: true,
-        order: createdOrder,
-        message: 'تم إنشاء الطلب، لكن حدث خطأ أثناء محاولة جلب الفاتورة',
-        invoice_error: err.response?.data || err.message
-      });
-    }
+    return res.json({
+      success: true,
+      order: createdOrder,
+      message: 'تم إنشاء الطلب بنجاح'
+    });
 
   } catch (err) {
     return res.status(500).json({
@@ -234,73 +198,32 @@ app.post('/v1/merchant/create-order', (req, res) => {
   req.url = '/api/submit-order';
   app._router.handle(req, res);
 });
-
-// ✅ جلب الفواتير
-app.get('/api/invoices', async (req, res) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({ success: false, error: 'مطلوب توكن صالح' });
-  }
-
-  const token = authHeader.split(' ')[1];
-
-  try {
-    const response = await axios.get(`${BASE_API}/get_merchant_invoices?token=${token}`);
-    return res.json({ success: true, invoices: response.data.data });
-  } catch (err) {
-    return res.status(500).json({ success: false, error: 'فشل في جلب الفواتير' });
-  }
-});
-
-// ✅ جلب الطلبات المرتبطة بفاتورة
-app.get('/api/invoice-orders', async (req, res) => {
-  const authHeader = req.headers.authorization;
-  const invoiceId = req.query.invoice_id;
-
-  if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({ success: false, error: 'مطلوب توكن صالح' });
-  }
-
-  if (!invoiceId) {
-    return res.status(400).json({ success: false, error: 'يجب إرسال invoice_id في الرابط' });
-  }
-
-  const token = authHeader.split(' ')[1];
-
-  try {
-    const response = await axios.get(`${BASE_API}/get_merchant_invoice_orders?token=${token}&invoice_id=${invoiceId}`);
-    return res.json({ success: true, data: response.data.data });
-  } catch (err) {
-    return res.status(500).json({ success: false, error: 'فشل في جلب طلبات الفاتورة' });
-  }
-});
-
 // ✅ استرجاع الطلبات
 app.get("/orders", async (req, res) => {
   const token = req.query.token; // الحصول على التوكن من الطلب
 
   if (!token) {
-    return res.status(400).json({ error: true, message: "Token is required"
-});
-}
-  
-try {
-const orders = await fetchOrders(token);
-res.json(orders);
-} catch (err) {
-console.log(err);
-res.status(500).json({ error: true, message: "Failed to retrieve orders" });
-}
+    return res.status(400).json({ error: true, message: "Token is required" });
+  }
+
+  try {
+    const orders = await fetchOrders(token);
+    res.json(orders);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: true, message: "Failed to retrieve orders" });
+  }
 });
 
 async function fetchOrders(token) {
-const url = ${BASE_API}/orders;
-const response = await axios.get(url, { headers: { Authorization: Bearer ${token} } });
-return response.data;
+  const url = `${BASE_API}/orders`; // تم تصحيح الـTemplate String هنا
+  const response = await axios.get(url, { headers: { Authorization: `Bearer ${token}` } });
+  return response.data;
 }
+
 
 // ✅ بدء الخادم
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-console.log(Proxy server running at http://localhost:${PORT});
+  console.log(`Proxy server running at http://localhost:${PORT}`);
 });
